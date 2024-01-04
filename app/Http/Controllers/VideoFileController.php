@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UploadVideoFileRequest;
-use App\Services\VideoService;
+use App\Services\WatermarkVideoService;
 
 class VideoFileController extends Controller
 {
@@ -12,12 +12,11 @@ class VideoFileController extends Controller
      */
     public function __invoke(UploadVideoFileRequest $request)
     {
-        $path = $request->file('file')->store('videos');
+        $path = $request->file('file')->store();
 
-        $filePath = storage_path('app' . DIRECTORY_SEPARATOR . $path);
+        $watermarkVideoService = new WatermarkVideoService($path);
+        $watermarkVideoService->execute();
 
-        $result = (new VideoService)->handle($filePath);
-
-        return response()->json(['path' => $result]);
+        return response()->json(['video_url' => $watermarkVideoService->getPublicUrlResult()]);
     }
 }

@@ -9,33 +9,44 @@ use ProtoneMedia\LaravelFFMpeg\Filters\WatermarkFactory;
 use ProtoneMedia\LaravelFFMpeg\MediaOpener;
 use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 
-final class VideoService
+final class WatermarkVideoService
 {
     private MediaOpener $video;
     private string $originalPathFile;
-    private string $resultPathFile;
+    private string $newFileName;
     private float $logoWidth;
     private float $logoHeight;
     private float $logoLeft;
     private float $logoBottom;
 
-    public function handle(string $pathFile): string
+    public function __construct(string $pathFile)
     {
         $this->originalPathFile = $pathFile;
+    }
 
+    public function execute(): void
+    {
+        $this->generateNewFileName();
         $this->setWatermarkProperties();
-        $this->addWatermark();
+        $this->createNewVideoFileWithWatermark();
         $this->deleteOriginalFile();
+    }
 
-        return $this->resultPathFile;
+    public function getPublicUrlResult(): string
+    {
+        return Storage::disk('public')->url($this->newFileName);
+    }
+
+    private function generateNewFileName(): void
+    {
+        $this->newFileName = Str::uuid() . '.mp4';
     }
 
     private function setWatermarkProperties(): void
     {
-        $this->video = FFMpeg::openUrl($this->originalPathFile);
-        $videoStreams = $this->video->getStreams();
+        $this->video = FFMpeg::open($this->originalPathFile);
 
-        foreach ($videoStreams as $stream) {
+        foreach ($this->video->getStreams() as $stream) {
             if ($stream->isVideo()) {
                 $width = min($stream->getDimensions()->getWidth(), $stream->getDimensions()->getHeight());
 
@@ -47,7 +58,7 @@ final class VideoService
         }
     }
 
-    private function addWatermark(): void
+    private function createNewVideoFileWithWatermark(): void
     {
         $this->video->addWatermark(function (WatermarkFactory $watermark) {
             $watermark->fromDisk('local')
@@ -59,13 +70,11 @@ final class VideoService
         })->export()
             ->toDisk('public')
             ->inFormat(new X264)
-            ->save($fileName = Str::uuid() . '.mp4');
-
-        $this->resultPathFile = Storage::url(public_path($fileName));
+            ->save($this->newFileName);
     }
 
     private function deleteOriginalFile(): void
     {
-        Storage::disk('local')->delete($this->originalPathFile);
+        Storage::delete($this->originalPathFile);
     }
 }
