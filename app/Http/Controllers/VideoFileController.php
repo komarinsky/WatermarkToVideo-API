@@ -2,21 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SaveVideoFileAction;
 use App\Http\Requests\UploadVideoFileRequest;
-use App\Services\WatermarkVideoService;
+use App\Http\Resources\VideoResource;
+use App\Models\Video;
+use App\Repositories\VideoRepository;
 
 class VideoFileController extends Controller
 {
     public function __construct(
-        private readonly WatermarkVideoService $videoService
+        private readonly VideoRepository $repository
     ) {}
 
-    public function __invoke(UploadVideoFileRequest $request)
+    public function index()
     {
-        $path = $request->file('file')->store();
+        return VideoResource::collection($this->repository->getAll());
+    }
 
-        $this->videoService->execute($path);
+    public function store(UploadVideoFileRequest $request, SaveVideoFileAction $action)
+    {
+        return VideoResource::make($action()->fresh());
+    }
 
-        return response()->json(['video_url' => $this->videoService->getPublicUrlResult()]);
+    public function show(Video $video)
+    {
+        return VideoResource::make($video);
     }
 }

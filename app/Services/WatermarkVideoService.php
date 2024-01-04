@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Video;
 use FFMpeg\Format\Video\X264;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -11,31 +12,26 @@ use ProtoneMedia\LaravelFFMpeg\Support\FFMpeg;
 
 final class WatermarkVideoService
 {
-    private MediaOpener $video;
-    private string $originalPathFile;
+    private MediaOpener $media;
+    private Video $video;
     private string $newFileName;
     private float $logoWidth;
     private float $logoHeight;
     private float $logoLeft;
     private float $logoBottom;
 
-    public function execute(string $pathFile): void
+    public function __construct(Video $video)
     {
-        $this->setOriginalPathFile($pathFile);
+        $this->video = $video;
+    }
+
+    public function execute(): void
+    {
         $this->generateNewFileName();
         $this->setWatermarkProperties();
         $this->createNewVideoFileWithWatermark();
         $this->deleteOriginalFile();
-    }
-
-    public function getPublicUrlResult(): string
-    {
-        return Storage::disk('public')->url($this->newFileName);
-    }
-
-    private function setOriginalPathFile($pathFile): void
-    {
-        $this->originalPathFile = $pathFile;
+        $this->updateVideoProperties();
     }
 
     private function generateNewFileName(): void
@@ -45,9 +41,9 @@ final class WatermarkVideoService
 
     private function setWatermarkProperties(): void
     {
-        $this->video = FFMpeg::open($this->originalPathFile);
+        $this->media = FFMpeg::open($this->video->path);
 
-        foreach ($this->video->getStreams() as $stream) {
+        foreach ($this->media->getStreams() as $stream) {
             if ($stream->isVideo()) {
                 $width = min($stream->getDimensions()->getWidth(), $stream->getDimensions()->getHeight());
 
@@ -61,8 +57,8 @@ final class WatermarkVideoService
 
     private function createNewVideoFileWithWatermark(): void
     {
-        $this->video->addWatermark(function (WatermarkFactory $watermark) {
-            $watermark->fromDisk('local')
+        $this->media->addWatermark(function (WatermarkFactory $watermark) {
+            $watermark->fromDisk('watermark')
                 ->open('logo.png')
                 ->left($this->logoLeft)
                 ->bottom($this->logoBottom)
@@ -76,6 +72,15 @@ final class WatermarkVideoService
 
     private function deleteOriginalFile(): void
     {
-        Storage::delete($this->originalPathFile);
+        Storage::delete($this->video->path);
+    }
+
+    private function updateVideoProperties()
+    {
+        $this->video->update([
+            'path' => $this->newFileName,
+            'public_url' => Storage::disk('public')->url($this->newFileName),
+            'with_watermark' => true,
+        ]);
     }
 }

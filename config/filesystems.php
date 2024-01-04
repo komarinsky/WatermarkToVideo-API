@@ -36,6 +36,12 @@ return [
             'throw' => false,
         ],
 
+        'watermark' => [
+            'driver' => 'local',
+            'root' => storage_path('watermark'),
+            'throw' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
