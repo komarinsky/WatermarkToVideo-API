@@ -7,16 +7,16 @@ use App\Services\WatermarkVideoService;
 
 class VideoFileController extends Controller
 {
-    /**
-     * Handle the incoming request.
-     */
+    public function __construct(
+        private readonly WatermarkVideoService $videoService
+    ) {}
+
     public function __invoke(UploadVideoFileRequest $request)
     {
         $path = $request->file('file')->store();
 
-        $watermarkVideoService = new WatermarkVideoService($path);
-        $watermarkVideoService->execute();
+        $this->videoService->execute($path);
 
-        return response()->json(['video_url' => $watermarkVideoService->getPublicUrlResult()]);
+        return response()->json(['video_url' => $this->videoService->getPublicUrlResult()]);
     }
 }

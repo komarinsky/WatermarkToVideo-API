@@ -19,13 +19,9 @@ final class WatermarkVideoService
     private float $logoLeft;
     private float $logoBottom;
 
-    public function __construct(string $pathFile)
+    public function execute(string $pathFile): void
     {
-        $this->originalPathFile = $pathFile;
-    }
-
-    public function execute(): void
-    {
+        $this->setOriginalPathFile($pathFile);
         $this->generateNewFileName();
         $this->setWatermarkProperties();
         $this->createNewVideoFileWithWatermark();
@@ -35,6 +31,11 @@ final class WatermarkVideoService
     public function getPublicUrlResult(): string
     {
         return Storage::disk('public')->url($this->newFileName);
+    }
+
+    private function setOriginalPathFile($pathFile): void
+    {
+        $this->originalPathFile = $pathFile;
     }
 
     private function generateNewFileName(): void
