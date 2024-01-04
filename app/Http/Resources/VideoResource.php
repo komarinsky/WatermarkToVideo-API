@@ -12,6 +12,7 @@ class VideoResource extends JsonResource
         return [
             'id' => $this->id,
             'public_url' => $this->public_url,
+            'with_watermark' => $this->with_watermark,
         ];
     }
 }
